@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>志ノオト CRM (Web版)</title>
+  <!-- PWA meta / icons -->
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --panel:#111827; /* gray-900 */
+      --muted:#1f2937; /* gray-800 */
+      --text:#e5e7eb; /* gray-200 */
+      --text-dim:#9ca3af; /* gray-400 */
+      --acc:#22c55e; /* green-500 */
+      --acc-2:#3b82f6; /* blue-500 */
+      --warn:#eab308; /* yellow-500 */
+      --danger:#ef4444; /* red-500 */
+      --ok:#10b981; /* emerald-500 */
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1220,#0f172a 40%,#0b1220);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--text)}
+    header{position:sticky;top:0;z-index:20;background:rgba(15,23,42,.7);backdrop-filter:blur(8px);border-bottom:1px solid #1f2937}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    h1{font-size:22px;margin:0;display:flex;gap:12px;align-items:center}
+    .badge{padding:2px 8px;border-radius:999px;background:var(--muted);font-size:12px;color:var(--text-dim)}
+
+    nav.tabs{display:flex;gap:8px;margin-top:12px}
+    nav.tabs button{background:var(--muted);border:none;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}
+    nav.tabs button.active{background:linear-gradient(90deg,var(--acc-2),#22d3ee);}
+
+    main{max-width:1200px;margin:20px auto;padding:16px;display:grid;gap:16px}
+
+    .card{background:linear-gradient(180deg,#0c1426,#0a1222);border:1px solid #1e293b;border-radius:var(--radius);padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .card h2{margin:0 0 12px 0;font-size:18px}
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .col-12{grid-column:span 12}
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-3{grid-column:span 3}
+    .col-2{grid-column:span 2}
+    @media (max-width:900px){.col-6,.col-4,.col-3,.col-2{grid-column:span 12}}
+
+    label{display:block;font-size:12px;color:var(--text-dim);margin:2px 0 6px}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #273448;background:#0b1220;color:var(--text)}
+    textarea{min-height:72px;resize:vertical}
+
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid #243042;background:#101929;color:var(--text);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--acc),#34d399);border:none;color:#052e16;font-weight:700}
+    .btn.good{background:linear-gradient(90deg,#06b6d4,#3b82f6);border:none;font-weight:700}
+    .btn.warn{background:linear-gradient(90deg,#f59e0b,#fde047);border:none;color:#3b2e04;font-weight:700}
+    .btn.danger{background:linear-gradient(90deg,#ef4444,#f97316);border:none;font-weight:700}
+
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    thead th{text-align:left;font-size:12px;color:var(--text-dim);padding:0 10px}
+    tbody tr{background:linear-gradient(180deg,#0c1426,#0a1222);border:1px solid #1f2b3c}
+    tbody td{padding:12px 10px;border-top:1px solid #1f2b3c;border-bottom:1px solid #1f2b3c}
+    tbody tr td:first-child{border-left:1px solid #1f2b3c;border-top-left-radius:12px;border-bottom-left-radius:12px}
+    tbody tr td:last-child{border-right:1px solid #1f2b3c;border-top-right-radius:12px;border-bottom-right-radius:12px}
+
+    .stage{padding:4px 8px;border-radius:999px;font-size:12px;display:inline-flex;align-items:center;gap:6px}
+    .s-new{background:#1e293b;color:#93c5fd}
+    .s-apo{background:#1e3a8a;color:#bfdbfe}
+    .s-prop{background:#0f766e;color:#a7f3d0}
+    .s-esti{background:#92400e;color:#fed7aa}
+    .s-neg{background:#7c2d12;color:#fde68a}
+    .s-win{background:#065f46;color:#a7f3d0}
+    .s-loss{background:#7f1d1d;color:#fecaca}
+
+    .pill{padding:4px 8px;border-radius:10px;background:#0b1220;border:1px solid #223049;display:inline-block}
+    .hr{height:1px;background:#1f2937;margin:8px 0 16px}
+    .right{margin-left:auto}
+
+    .empty{padding:24px;border:1px dashed #334155;border-radius:12px;text-align:center;color:var(--text-dim)}
+    .muted{color:var(--text-dim)}
+    .price{font-variant-numeric:tabular-nums}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>志ノオト CRM <span class="badge">Web版 / ローカル保存</span></h1>
+      <nav class="tabs" role="tablist">
+        <button class="active" data-tab="deals">案件</button>
+        <button data-tab="catalog">商材・オプション</button>
+        <button data-tab="tools">ツール</button>
+        <button data-tab="about">使い方</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Deals -->
+    <section id="tab-deals" class="card" role="tabpanel">
+      <h2>案件登録</h2>
+      <div class="grid">
+        <div class="col-4">
+          <label>顧客名 *</label>
+          <input id="f_customer" placeholder="株式会社〇〇" />
+        </div>
+        <div class="col-4">
+          <label>案件名</label>
+          <input id="f_title" placeholder="志ノオト導入 (大阪本社)" />
+        </div>
+        <div class="col-4">
+          <label>担当者（必須）*</label>
+          <input id="f_owner" placeholder="担当者名" />
+        </div>
+
+        <div class="col-4">
+          <label>サブ担当者（任意）</label>
+          <input id="f_subowner" placeholder="任意" />
+        </div>
+        <div class="col-4">
+          <label>ステージ</label>
+          <select id="f_stage">
+            <option>新規</option>
+            <option>アポ</option>
+            <option>提案</option>
+            <option>見積</option>
+            <option>交渉</option>
+            <option>受注</option>
+            <option>失注</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>次アクション</label>
+          <input id="f_next" placeholder="例：来週水曜 提案MTG" />
+        </div>
+
+        <div class="col-4">
+          <label>期日（次アクション）</label>
+          <input id="f_due" type="datetime-local" />
+        </div>
+        <div class="col-4">
+          <label>商材（プラン）</label>
+          <select id="f_product"></select>
+        </div>
+        <div class="col-4">
+          <label>オプション（複数選択可）</label>
+          <select id="f_options" multiple size="3"></select>
+        </div>
+
+        <div class="col-12">
+          <label>メモ</label>
+          <textarea id="f_note" placeholder="補足メモや議事のポイントなど"></textarea>
+        </div>
+        <div class="col-12 row">
+          <div class="pill">見積金額：<strong id="f_amount" class="price">¥0</strong></div>
+          <button class="btn primary" id="btn_add">保存</button>
+          <button class="btn good" id="btn_ics">期日をカレンダー(ICS)にする</button>
+          <button class="btn warn" id="btn_clear_form">入力をクリア</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <div class="col-6">
+          <label>キーワード検索</label>
+          <input id="q" placeholder="顧客名 / 案件名 / メモ / 担当者" />
+        </div>
+        <div class="col-3">
+          <label>ステージで絞り込み</label>
+          <select id="q_stage">
+            <option value="">すべて</option>
+            <option>新規</option><option>アポ</option><option>提案</option><option>見積</option><option>交渉</option><option>受注</option><option>失注</option>
+          </select>
+        </div>
+        <div class="col-3 row" style="align-items:end">
+          <button class="btn" id="btn_export">CSVエクスポート</button>
+          <button class="btn danger" id="btn_wipe">全データ初期化</button>
+        </div>
+      </div>
+      <div id="list_wrap" class="col-12" style="margin-top:12px"></div>
+    </section>
+
+    <!-- Catalog -->
+    <section id="tab-catalog" class="card" role="tabpanel" hidden>
+      <h2>商材・オプションの管理</h2>
+      <p class="muted">名称と税抜価格を登録。案件フォームに即時反映されます。</p>
+      <div class="grid">
+        <div class="col-6">
+          <h3>商材（プラン）</h3>
+          <div class="row">
+            <input id="p_name" placeholder="例：ライトプラン" />
+            <input id="p_price" type="number" placeholder="700000" />
+            <button class="btn primary" id="btn_add_product">追加</button>
+          </div>
+          <div class="hr"></div>
+          <table>
+            <thead><tr><th>名称</th><th>価格(税抜)</th><th></th></tr></thead>
+            <tbody id="products_tbody"></tbody>
+          </table>
+        </div>
+        <div class="col-6">
+          <h3>オプション</h3>
+          <div class="row">
+            <input id="o_name" placeholder="例：採用動画制作" />
+            <input id="o_price" type="number" placeholder="150000" />
+            <button class="btn primary" id="btn_add_option">追加</button>
+          </div>
+          <div class="hr"></div>
+          <table>
+            <thead><tr><th>名称</th><th>価格(税抜)</th><th></th></tr></thead>
+            <tbody id="options_tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tools -->
+    <section id="tab-tools" class="card" role="tabpanel" hidden>
+      <h2>ツール</h2>
+      <div class="row">
+        <button class="btn" id="btn_backup">バックアップ（JSON保存）</button>
+        <input type="file" id="file_restore" accept="application/json" hidden />
+        <button class="btn" id="btn_restore">バックアップ復元</button>
+      </div>
+      <p class="muted">データはブラウザのローカルストレージに保存されます。別PCに移すときはバックアップをご利用ください。</p>
+    </section>
+
+    <!-- About -->
+    <section id="tab-about" class="card" role="tabpanel" hidden>
+      <h2>使い方</h2>
+      <ol>
+        <li>「商材・オプション」でプランやオプションを登録（初期値あり）</li>
+        <li>「案件」でフォーム入力 → <b>保存</b></li>
+        <li>期日がある場合は「期日をカレンダー(ICS)にする」からカレンダーファイルを作成し、Googleカレンダーにインポート可能</li>
+        <li>CSVエクスポートで一覧をダウンロード可（Excelで開けます）</li>
+      </ol>
+      <p class="muted">※ Googleカレンダーへ自動登録の完全連携（OAuth）は後日対応。まずはICSで運用できます。</p>
+    </section>
+  </main>
+
+  <script>
+    // --- Utilities ---
+    const jpYen = new Intl.NumberFormat('ja-JP',{style:'currency', currency:'JPY'});
+    const el = id => document.getElementById(id);
+    const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+    const load = (k,d)=> JSON.parse(localStorage.getItem(k)||JSON.stringify(d));
+
+    const STAGES = ["新規","アポ","提案","見積","交渉","受注","失注"];
+
+    // --- State ---
+    let products = load('sonoto_products', []);
+    let options = load('sonoto_options', []);
+    let deals = load('sonoto_deals', []);
+
+    // Seed default catalog if empty
+    if(products.length === 0){
+      products = [
+        {id: crypto.randomUUID(), name:"ライトプラン", price:700000},
+        {id: crypto.randomUUID(), name:"ベーシックプラン", price:1200000},
+        {id: crypto.randomUUID(), name:"カスタムプラン", price:1800000}
+      ];
+      save('sonoto_products', products);
+    }
+    if(options.length === 0){
+      options = [
+        {id: crypto.randomUUID(), name:"追加ページ(1P)", price:80000},
+        {id: crypto.randomUUID(), name:"採用動画制作(短編)", price:150000},
+        {id: crypto.randomUUID(), name:"写真撮影(半日)", price:60000}
+      ];
+      save('sonoto_options', options);
+    }
+
+    // --- Tabs ---
+    document.querySelectorAll('nav.tabs button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('main section').forEach(sec=>sec.hidden=true);
+        el('tab-'+tab).hidden=false;
+      })
+    });
+
+    // --- Catalog rendering ---
+    function refreshCatalogInputs(){
+      // products dropdown
+      const sel = el('f_product');
+      sel.innerHTML = '<option value="">未選択</option>' + products.map(p=>`<option value="${p.id}">${p.name}（${jpYen.format(p.price)}）</option>`).join('');
+      // options multi
+      const mul = el('f_options');
+      mul.innerHTML = options.map(o=>`<option value="${o.id}">${o.name}（${jpYen.format(o.price)}）</option>`).join('');
+    }
+
+    function renderCatalogTables(){
+      const pt = el('products_tbody');
+      pt.innerHTML = products.map(p=>`
+        <tr>
+          <td>${p.name}</td>
+          <td class="price">${jpYen.format(p.price)}</td>
+          <td style="text-align:right">
+            <button class="btn" onclick='editProduct("${p.id}")'>編集</button>
+            <button class="btn danger" onclick='delProduct("${p.id}")'>削除</button>
+          </td>
+        </tr>`).join('');
+
+      const ot = el('options_tbody');
+      ot.innerHTML = options.map(o=>`
+        <tr>
+          <td>${o.name}</td>
+          <td class="price">${jpYen.format(o.price)}</td>
+          <td style="text-align:right">
+            <button class="btn" onclick='editOption("${o.id}")'>編集</button>
+            <button class="btn danger" onclick='delOption("${o.id}")'>削除</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function editProduct(id){
+      const p = products.find(x=>x.id===id);
+      const name = prompt('名称を入力', p.name);
+      if(name===null) return;
+      const priceStr = prompt('税抜価格(数値)', p.price);
+      const price = Number(priceStr);
+      if(!Number.isFinite(price)) return alert('数値を入力してください');
+      p.name = name.trim(); p.price = price; save('sonoto_products', products);
+      refreshCatalogInputs(); renderCatalogTables(); calcAmount(); renderList();
+    }
+    function delProduct(id){
+      if(!confirm('削除しますか？')) return;
+      products = products.filter(x=>x.id!==id); save('sonoto_products', products);
+      refreshCatalogInputs(); renderCatalogTables(); calcAmount(); renderList();
+    }
+
+    function editOption(id){
+      const o = options.find(x=>x.id===id);
+      const name = prompt('名称を入力', o.name);
+      if(name===null) return;
+      const priceStr = prompt('税抜価格(数値)', o.price);
+      const price = Number(priceStr);
+      if(!Number.isFinite(price)) return alert('数値を入力してください');
+      o.name = name.trim(); o.price = price; save('sonoto_options', options);
+      refreshCatalogInputs(); renderCatalogTables(); calcAmount(); renderList();
+    }
+    function delOption(id){
+      if(!confirm('削除しますか？')) return;
+      options = options.filter(x=>x.id!==id); save('sonoto_options', options);
+      refreshCatalogInputs(); renderCatalogTables(); calcAmount(); renderList();
+    }
+
+    el('btn_add_product').addEventListener('click',()=>{
+      const name = el('p_name').value.trim();
+      const price = Number(el('p_price').value);
+      if(!name || !Number.isFinite(price)) return alert('名称と価格を正しく入力');
+      products.push({id:crypto.randomUUID(), name, price}); save('sonoto_products', products);
+      el('p_name').value=''; el('p_price').value='';
+      refreshCatalogInputs(); renderCatalogTables();
+    });
+    el('btn_add_option').addEventListener('click',()=>{
+      const name = el('o_name').value.trim();
+      const price = Number(el('o_price').value);
+      if(!name || !Number.isFinite(price)) return alert('名称と価格を正しく入力');
+      options.push({id:crypto.randomUUID(), name, price}); save('sonoto_options', options);
+      el('o_name').value=''; el('o_price').value='';
+      refreshCatalogInputs(); renderCatalogTables();
+    });
+
+    // --- Deal form ---
+    function calcAmount(){
+      const pid = el('f_product').value;
+      let amount = 0;
+      if(pid){
+        const p = products.find(x=>x.id===pid); if(p) amount += p.price;
+      }
+      const sel = Array.from(el('f_options').selectedOptions).map(o=>o.value);
+      sel.forEach(id=>{const op = options.find(x=>x.id===id); if(op) amount+=op.price;});
+      el('f_amount').textContent = jpYen.format(amount);
+      return amount;
+    }
+    ['f_product','f_options'].forEach(id=> el(id).addEventListener('change', calcAmount));
+
+    el('btn_clear_form').addEventListener('click',()=>{
+      ['f_customer','f_title','f_owner','f_subowner','f_next','f_note'].forEach(i=>el(i).value='');
+      el('f_stage').value='新規'; el('f_product').value='';
+      Array.from(el('f_options').options).forEach(o=>o.selected=false);
+      el('f_due').value=''; calcAmount();
+    });
+
+    el('btn_add').addEventListener('click',()=>{
+      const customer = el('f_customer').value.trim();
+      const title = el('f_title').value.trim();
+      const owner = el('f_owner').value.trim();
+      if(!customer) return alert('顧客名は必須です');
+      if(!owner) return alert('担当者は必須です');
+      const subowner = el('f_subowner').value.trim();
+      const stage = el('f_stage').value;
+      const next = el('f_next').value.trim();
+      const due = el('f_due').value; // ISO string local
+      const productId = el('f_product').value || null;
+      const optionIds = Array.from(el('f_options').selectedOptions).map(o=>o.value);
+      const amount = calcAmount();
+      const note = el('f_note').value.trim();
+
+      const deal = { id: crypto.randomUUID(), ts: Date.now(), customer, title, owner, subowner, stage, next, due, productId, optionIds, amount, note };
+      deals.unshift(deal); save('sonoto_deals', deals);
+      renderList();
+      alert('保存しました');
+    });
+
+    // ICS generation (single event)
+    function toICSDate(dtLocal){
+      // dtLocal: 'YYYY-MM-DDTHH:MM' local -> 'YYYYMMDDTHHMM00'
+      if(!dtLocal) return '';
+      const d = new Date(dtLocal);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const HH = String(d.getHours()).padStart(2,'0');
+      const MM = String(d.getMinutes()).padStart(2,'0');
+      return `${yyyy}${mm}${dd}T${HH}${MM}00`;
+    }
+
+    el('btn_ics').addEventListener('click',()=>{
+      const customer = el('f_customer').value.trim();
+      const next = el('f_next').value.trim();
+      const due = el('f_due').value;
+      if(!customer || !due){
+        return alert('顧客名と期日が必要です');
+      }
+      const title = next ? `【志ノオト】${customer} / ${next}` : `【志ノオト】${customer} 次アクション`;
+      const dt = toICSDate(due);
+      const uid = crypto.randomUUID();
+      const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Sonoto CRM//JP\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${dt}\nDTSTART:${dt}\nSUMMARY:${title}\nDESCRIPTION:${(el('f_title').value||'')}\nEND:VEVENT\nEND:VCALENDAR`;
+      const blob = new Blob([ics],{type:'text/calendar'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `sonoto_${customer}_${Date.now()}.ics`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // --- Deals list ---
+    function stageBadge(s){
+      const m = {"新規":"s-new","アポ":"s-apo","提案":"s-prop","見積":"s-esti","交渉":"s-neg","受注":"s-win","失注":"s-loss"};
+      return `<span class="stage ${m[s]||'s-new'}">${s}</span>`
+    }
+
+    function renderList(){
+      const q = el('q').value.toLowerCase();
+      const qs = el('q_stage').value;
+      let rows = deals.filter(d=>{
+        const text = [d.customer,d.title,d.owner,d.subowner,d.note].join(' ').toLowerCase();
+        const okQ = !q || text.includes(q);
+        const okS = !qs || d.stage===qs;
+        return okQ && okS;
+      });
+      const wrap = el('list_wrap');
+      if(rows.length===0){
+        wrap.innerHTML = `<div class="empty">まだ案件がありません。フォームから保存してください。</div>`;
+        return;
+      }
+      const html = [`<table><thead><tr>
+        <th>登録日</th><th>顧客</th><th>案件</th><th>担当</th><th>ステージ</th><th>商材</th><th>オプション</th><th>金額</th><th>期日</th><th></th>
+      </tr></thead><tbody>`];
+      rows.forEach(d=>{
+        const p = d.productId ? products.find(x=>x.id===d.productId) : null;
+        const ops = d.optionIds?.map(id=> options.find(o=>o.id===id)?.name).filter(Boolean) || [];
+        const date = new Date(d.ts).toLocaleString();
+        html.push(`<tr>
+          <td class="muted">${date}</td>
+          <td>${d.customer}</td>
+          <td>${d.title||''}</td>
+          <td>${d.owner}${d.subowner? ' / '+d.subowner:''}</td>
+          <td>${stageBadge(d.stage)}</td>
+          <td>${p? p.name:''}</td>
+          <td>${ops.join('、')}</td>
+          <td class="price">${jpYen.format(d.amount||0)}</td>
+          <td>${d.due? new Date(d.due).toLocaleString():''}</td>
+          <td style="text-align:right">
+            <button class="btn" onclick='moveStage("${d.id}")'>ステージ変更</button>
+            <button class="btn" onclick='editDeal("${d.id}")'>編集</button>
+            <button class="btn danger" onclick='delDeal("${d.id}")'>削除</button>
+          </td>
+        </tr>`)
+      });
+      html.push('</tbody></table>');
+      wrap.innerHTML = html.join('');
+    }
+
+    function moveStage(id){
+      const d = deals.find(x=>x.id===id);
+      const next = prompt('ステージを入力 (新規/アポ/提案/見積/交渉/受注/失注)', d.stage);
+      if(!next) return;
+      if(!STAGES.includes(next)) return alert('正しいステージ名を入力してください');
+      d.stage = next; save('sonoto_deals', deals); renderList();
+    }
+
+    function editDeal(id){
+      const d = deals.find(x=>x.id===id);
+      // Simple editor via prompt for quick tweak
+      const title = prompt('案件名', d.title||''); if(title===null) return; d.title = title;
+      const owner = prompt('担当者(必須)', d.owner||''); if(!owner){ alert('担当者は必須です'); return; } d.owner = owner;
+      const sub = prompt('サブ担当者(任意)', d.subowner||''); d.subowner = sub||'';
+      const note = prompt('メモ', d.note||''); d.note = note||'';
+      save('sonoto_deals', deals); renderList();
+    }
+
+    function delDeal(id){
+      if(!confirm('この案件を削除しますか？')) return;
+      deals = deals.filter(x=>x.id!==id); save('sonoto_deals', deals); renderList();
+    }
+
+    el('q').addEventListener('input',renderList);
+    el('q_stage').addEventListener('change',renderList);
+
+    // CSV export
+    function toCSV(rows){
+      const escape = s=> '"'+String(s??'').replace(/"/g,'""')+'"';
+      const header = ["登録日時","顧客","案件","担当者","サブ担当","ステージ","商材","オプション","金額(税抜)","期日","メモ"];
+      const lines = [header.join(',')];
+      rows.forEach(d=>{
+        const p = d.productId ? products.find(x=>x.id===d.productId) : null;
+        const ops = d.optionIds?.map(id=> options.find(o=>o.id===id)?.name).filter(Boolean).join(' | ');
+        lines.push([
+          new Date(d.ts).toLocaleString(), d.customer, d.title||'', d.owner||'', d.subowner||'', d.stage,
+          p? p.name:'', ops||'', d.amount||0, d.due? new Date(d.due).toLocaleString():'', d.note||''
+        ].map(escape).join(','));
+      })
+      return lines.join('\n');
+    }
+    el('btn_export').addEventListener('click',()=>{
+      if(deals.length===0) return alert('データがありません');
+      const csv = toCSV(deals);
+      const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `sonoto_crm_${Date.now()}.csv`;
+      a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    // Wipe
+    el('btn_wipe').addEventListener('click',()=>{
+      if(!confirm('全データ(案件/商材/オプション)を初期化します。続行しますか？')) return;
+      localStorage.removeItem('sonoto_deals');
+      localStorage.removeItem('sonoto_products');
+      localStorage.removeItem('sonoto_options');
+      location.reload();
+    });
+
+    // Backup/Restore
+    el('btn_backup').addEventListener('click',()=>{
+      const payload = {version:1, exportedAt: new Date().toISOString(), products, options, deals};
+      const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `sonoto_backup_${Date.now()}.json`; a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    el('btn_restore').addEventListener('click',()=> el('file_restore').click());
+    el('file_restore').addEventListener('change',(e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const data = JSON.parse(reader.result);
+          if(!data.products || !data.options || !data.deals) throw new Error('不正なバックアップ');
+          products = data.products; options = data.options; deals = data.deals;
+          save('sonoto_products', products); save('sonoto_options', options); save('sonoto_deals', deals);
+          refreshCatalogInputs(); renderCatalogTables(); renderList();
+          alert('復元しました');
+        }catch(err){ alert('復元に失敗：'+err.message); }
+      };
+      reader.readAsText(file);
+    });
+
+    // init
+    refreshCatalogInputs();
+    renderCatalogTables();
+    renderList();
+    calcAmount();
+  </script>
+  <script>
+    // --- Service Worker registration (PWA) ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered', reg.scope))
+          .catch(err => console.warn('SW registration failed', err));
+      });
+    }
+  </script>
+</body>
+</html>
